@@ -1,0 +1,37 @@
+# Name: Integration-environment.yml
+# Description: Spinning up Int-Env and running unit and Integration testing
+
+name: Setup Integration Environment
+
+# Only trigger, when the Dev unit testing workflow succeeded
+
+# Only trigger, when the build workflow succeeded
+on:
+  workflow_run:
+    workflows: ["Python Frontend testing"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker images
+      run: docker compose -f "docker-compose.yml" up -d --build
+      
+    - name: Run the python unit tests for sentimental_analysis
+      run: docker exec sentiment-analysis-api-1 sh -c 'pytest'
+
+    - name: Run the frontend unit tests
+      run: docker exec sentiment-analysis-web-1 sh -c 'pytest'
+      
+    - name: Run the Integration tests
+      run: docker exec sentiment-analysis-web-1 sh -c 'pytest web/Integration_tests/test_integration.py'
+      
+    - name: Destroy the containers
+      run: docker compose -f "docker-compose.yml" down
